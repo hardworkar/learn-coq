@@ -106,12 +106,22 @@ Locate "_ || _".
 (** * Exercise *)
 Definition LEM_decidable :
   forall (b : bool), b || ~~ b = true
-:= 
+:= fun b : bool =>
+    match b return (b || ~~ b = true) with
+    | true => erefl true
+    | false => erefl true
+    end.
+Print LEM_decidable.
 (** * Exercise *)
 Definition if_neg :
   forall (A : Type) (b : bool) (vT vF: A),
     (if ~~ b then vT else vF) = if b then vF else vT
-:= replace_with_your_solution_here.
+:= fun _ b vT vF => 
+    match b as c return ((if ~~ c then vT else vF) = if c then vF else vT)
+    with
+    | true => erefl vF
+    | false => erefl vT
+    end.
 
 (** * Exercise : associativity of function composition *)
 (** [\o] is a notation for function composition in MathComp, prove that it's associative *)

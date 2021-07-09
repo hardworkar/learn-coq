@@ -110,8 +110,11 @@ Section Equality.
 Definition f_congr {A B} (f : A -> B) (x y : A) :
   x = y  ->  f x = f y
 := fun xy : x = y =>
-    match xy in (_ = b) return (f x = f b)
-    with | eq_refl => eq_refl
+    match
+      xy in (_ = b)
+      return (f x = f b)
+    with
+    | eq_refl => eq_refl (f x)
     end.
 
 Definition f_congr' A B (f g : A -> B) (x y : A) :

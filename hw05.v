@@ -113,31 +113,77 @@ move=> ->.
 done.
 Qed.
 
+Lemma dummy2 m :
+  (m + m).-1 = m + m.-1.
+Proof.
+elim: m.
+done.
+move=> n IHn.
+rewrite addnS addSn.
+done.
+Qed.
+Lemma dummy3 m n:
+  m > 0 -> (m + n).-1 = m.-1 + n.
+Proof.
+elim: n.
+by rewrite addn0 addn0.
+move=> n IHn.
+move=> gtHyp.
 
-
+rewrite addnS addnS.
+rewrite -(IHn gtHyp) -pred_Sn.
+rewrite prednK.
+done.
+exact: ltn_addr n gtHyp.
+Qed.
+Lemma idk_how_to_find_it_so (b : bool) :
+  (b || b) -> b.
+Proof. case: b ; done. Qed.
 (** * Exercise
 Prove by it induction: you may re-use the addnS and addSn lemmas only *)
 Lemma double_inj m n :
   m + m = n + n -> m = n.
 Proof.
-elim: n.
-case: m.
-done.
-done.
-move=> n IHn.
+move: n.
+elim: m.
+move=> n.
+case: n; done.
+move=> n IHm m.
+
 rewrite addnS.
 move=> H1.
 move: (H1).
 move=> _.
-move: (dummy H1).
+move: (dummy (Logic.eq_sym H1)).
+rewrite dummy2.
+
 rewrite addSn.
 move=> H2.
 move: (H2).
 move=> _.
 move: (dummy H2).
+rewrite dummy3.
+move=> Hyp.
+move: (congr1 S (IHm m.-1 (Logic.eq_sym Hyp))).
 
+rewrite prednK.
+done.
 
+(* Yep they are the same. idk how to fix that for now *)
+move: H1.
+move: (ltn0Sn ((n.+1 + n))).
+move=> gtHyp eqnm.
+rewrite eqnm in gtHyp.
+rewrite (addn_gt0 m m) in gtHyp.
+exact: (idk_how_to_find_it_so gtHyp).
 
+move: H1.
+move: (ltn0Sn ((n.+1 + n))).
+move=> gtHyp eqnm.
+rewrite eqnm in gtHyp.
+rewrite (addn_gt0 m m) in gtHyp.
+move: (idk_how_to_find_it_so gtHyp).
+done.
 Qed.
 (* This is a harder exercise than the previous ones but
    the tactics you already know are sufficient *)

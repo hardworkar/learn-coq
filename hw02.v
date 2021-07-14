@@ -18,9 +18,10 @@ multiplications *)
 Inductive expr : Type :=
 | Const of nat
 | Plus of expr & expr
-| Minus of ...
-| Mult of ...
+| Minus of expr & expr
+| Mult of expr & expr
 .
+Print expr.
 
 (** Let us define a special notation for our language.
     We reuse the standard arithmetic notations here, but only inside
@@ -45,8 +46,8 @@ Notation "x + y" := (Plus x y) (in custom expr at level 2, left associativity).
 (* Define notations for subtraction and multiplication.
    Hint: lower level means higher priority.
    Your notations should start with `in custom expr` as above. *)
-Notation "x - y" := ...
-Notation "x * y" := ...
+Notation "x - y" := (Minus x y) (in custom expr at level 2).
+Notation "x * y" := (Mult x y) (in custom expr at level 1).
 
 (** Here is how we write Plus (Const 0) (Plus (Const 1) (Const 2)) *)
 Check [[
@@ -76,8 +77,12 @@ Check [[
 Basically, the semantics of the expression language should be the same as
 the corresponding Coq functions `addn`, `subn`, `muln`. *)
 Fixpoint eval (e : expr) : nat :=
-  ...
-
+  match e with
+  | Const x => x
+  | Plus x y => eval x + eval y
+  | Minus x y => eval x - eval y
+  | Mult x y => eval x * eval y
+  end.
 (** Some unit tests *)
 (** We haven't discussed in depth what `erefl` means yet.
     But for now, let's just assume if the following lines
@@ -87,8 +92,8 @@ Check erefl : eval [[ 0 + (2 - 1) ]] = 1.
 Check erefl : eval [[ (0 + 1) + 2 ]] = 3.
 Check erefl : eval [[ 2 + 2 * 2 ]] = 6.
 Check erefl : eval [[ (2 + 2) * 2 ]] = 8.
-...
-
+Fail Check erefl : eval [[ 0 + 7 ]] = 4.
+Compute eval [[3 + 30]].
 
 (** * Compiling arithmetic expressions to a stack language *)
 
@@ -112,6 +117,7 @@ For example, this is one possible way to start:
 Notation " << n >> " := (Push n) (at level 0, n constr).
 *)
 
+Notation " << n >> " := (Push n) (at level 0, n constr).
 
 (* Feel free to either define your own datatype to represent lists or reuse the
 `seq` datatype provided by Mathcomp (this is why this file imports the `seq`
@@ -136,29 +142,57 @@ And the type of stacks like so:
     Definition stack := seq nat.
 *)
 
+Definition prog := seq instr.
+Definition stack := seq nat.
+
 
 (** The [run] function is an interpreter for the stack language. It takes a
  program (list of instructions) and the current stack, and processes the program
  instruction-by-instruction, returning the final stack. *)
 Fixpoint run (p : prog) (s : stack) : stack :=
-  ...
-
+  match p with
+  | nil => s
+  | command :: rest =>
+    match command with
+    | Push n => run rest (n :: s)
+    | Add => if s is x::y::s' then run rest ((addn y x) :: s') else [::]
+    | Sub => if s is x::y::s' then run rest ((subn y x) :: s') else [::]
+    | Mul => if s is x::y::s' then run rest ((muln y x) :: s') else [::]
+    end
+  end.
 (** Unit tests: *)
-Check erefl :
-  run [:: ... stack-program ...] [::] = [:: ... stack-of-numbers ...].
-...
+Check erefl : run [:: (Push 4)] [::] = [:: 4].
+Check erefl : run [:: (Push 4) ; (Push 3) ; Add] [::] = [:: 7].
+Check erefl : run [:: (Push 3) ; (Push 4) ; Sub] [::] = [:: 0].
+Check erefl : run [:: (Push 4) ; (Push 3) ; Mul] [::] = [:: 12].
+Check erefl : run [:: (Push 8) ; (Push 2) ; Sub] [::] = [:: 6].
+
 
 
 (** Now, implement a compiler from "high-level" expressions to "low-level" stack
 programs and do some unit tests. *)
 Fixpoint compile (e : expr) : prog :=
-  ...
+  match e with
+  | Const x => [:: (Push x)]
+  | Plus x y => compile x ++ compile y ++ [:: Add]
+  | Minus x y => compile x ++ compile y ++ [:: Sub]
+  | Mult x y => compile x ++ compile y ++ [:: Mul]
+  end.
+
+
+Compute (let e := [[1 + 3 * 2 - 2]] in run (compile e) [::] = [:: eval e]).
+Compute (let e := [[1 * 3 * 2 - 2]] in run (compile e) [::] = [:: eval e]).
+Compute (let e := [[1 - 3 * 2 - 2]] in run (compile e) [::] = [:: eval e]).
+Compute (let e := [[1 + 33 * 2 - 2]] in run (compile e) [::] = [:: eval e]).
+Compute (let e := [[1 + 33 * 2 - 20]] in run (compile e) [::] = [:: eval e]).
+Compute (let e := [[(1 + 33) * 2 - 20]] in run (compile e) [::] = [:: eval e]).
+Compute (let e := [[1 + 33 * (2 - 20)]] in run (compile e) [::] = [:: eval e]).
 
 (** Do some unit tests *)
 Check erefl :
-  compile [[ ... expression ... ]] = [:: ... stack-program ].
-...
-(* Some ideas for unit tests:
+  compile [[ 1 + 2*3 ]] = [:: (Push 1) ; (Push 2) ; (Push 3) ; Mul ; Add ].
+
+(* Some ideas for unit tests: - IN HW06!!!
   - check that `run (compile e) [::] = [:: eval e]`, where `e` is an arbitrary expression;
   - check that `compile` is an injective function
 *)

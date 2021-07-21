@@ -306,3 +306,77 @@ Admitted.
 
 End MergeSortCorrect.
 End Merge.
+
+Section AccFrom.
+
+Variable (p : pred nat).
+
+Inductive acc_from i : Prop :=
+| AccNow of p i
+| AccLater of acc_from i.+1.
+
+End AccFrom.
+
+About acc_from_ind.
+
+Section SimpleExamples.
+
+Goal acc_from (fun n => n == 42) 0.
+Proof.
+do 42 apply: AccLater.
+by apply: AccNow.
+Qed.
+
+Goal acc_from (fun n => n == 42) 43 -> False.
+Proof.
+elim.
+Abort.
+
+
+Goal acc_from (fun n => n == 42) 43 -> False.
+Proof.
+fix inacc 1.
+Show Proof.
+case=> //.
+Abort.
+
+Lemma inacc_from43 :
+    forall x, 42 < x -> acc_from (fun n => n == 42) x -> False.
+Proof.
+fix inacc 3.
+Show Proof.
+move=> x x_gt42.
+case=> [/eqP E|].
+- by rewrite E in x_gt42.
+apply: inacc.
+by apply: (ltn_trans x_gt42).
+Qed.
+
+End SimpleExamples.
+
+Section Find.
+
+Variable p : pred nat.
+
+Lemma find_ex :
+    (exists n, p n) -> {m | p m}.
+Proof.
+move=> exp.
+have: acc_from p 0.
+case: exp=> n.
+rewrite -(addn0 n).
+elim: n 0=> [| n IHn] j.
+by left.
+rewrite addSnnS.
+right.
+by apply: IHn.
+
+move: 0.
+fix find_ex 2=> m IHm.
+case pm: (p m).
+- by exists m.
+apply: find_ex m.+1 _.
+case: IHm.
+by rewrite pm.
+done.
+Defined.

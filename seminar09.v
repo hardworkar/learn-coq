@@ -131,7 +131,6 @@ End Exercise4.
 
 
 Section Exercise5.
-Require Import Psatz.
 Lemma why_are_we_still_here x a b :
   x = a + b -> x - a = b.
 Proof.
@@ -148,6 +147,17 @@ exact: addnC.
 rewrite addnC; exact: leq_addr.
 Qed.
 
+Lemma absurd_even x y :
+  odd y ->
+  2 * x = y -> False.
+Proof.
+move=> oddy.
+rewrite mulnC muln2.
+move=> equ.
+rewrite -equ in oddy.
+rewrite odd_double in oddy.
+done.
+Qed.
 
 (* Prove [8x = 6y + 1] has no solutions in [nat] *)
 Lemma no_solution x y :
@@ -155,24 +165,12 @@ Lemma no_solution x y :
 Proof.
 apply/eqP.
 rewrite /not.
-elim: y x.
-rewrite muln0 add0n.
-case=> //.
-move=> x.
-rewrite mulnS //.
-move=> y IHy.
-case=> //=.
-move=> x.
-rewrite (mulnS 6).
-rewrite -addnA.
 move=> equ.
 move: (why_are_we_still_here equ).
-move: equ=> _.
-case: x=> /=.
-rewrite muln1.
-(* i'm basically dead *)
-Admitted.
-
+rewrite (erefl : 8 = 2 * 4) (erefl : 6 = 2 * 3) -!mulnA.
+rewrite -mulnBr.
+by apply: absurd_even.
+Qed.
 
 
 End Exercise5.
